@@ -15,7 +15,12 @@ config_base={
     "businessHours": {
         "start": "08:00",
         "end": "23:00"
-    }
+    },
+    # chrome浏览器驱动路径
+    # macOS示例路径
+    "chrome_executable_path":"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    # "chrome_executable_path": None,
+
 }
 
 class Config:

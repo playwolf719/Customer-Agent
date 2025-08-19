@@ -13,6 +13,8 @@ from database import db_manager
 import websockets
 import json
 import asyncio
+import ssl
+import platform
 from typing import Optional
 # 导入消息处理系统
 from Message import put_message
@@ -27,6 +29,64 @@ class PDDChannel(Channel):
         self.ws = None
         self._stop_event = None  # 停止事件
         self.businessHours = config.get("businessHours")
+
+    def _create_ssl_context(self):
+        """
+        为macOS创建更宽松的SSL上下文，避免连接问题
+        """
+        try:
+            # 创建SSL上下文
+            ssl_context = ssl.create_default_context()
+            
+            # 针对macOS系统的宽松SSL配置
+            if platform.system() == "Darwin":  # macOS
+                # 禁用主机名验证（宽松模式）
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                
+                # 设置最低TLS版本为1.0以提供更好的兼容性
+                try:
+                    ssl_context.minimum_version = ssl.TLSVersion.TLSv1
+                    ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+                except AttributeError:
+                    # 如果不支持TLSVersion，则跳过
+                    pass
+                
+                # 设置更宽松的密码套件
+                try:
+                    ssl_context.set_ciphers('HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA')
+                except ssl.SSLError:
+                    # 如果设置失败，使用默认配置
+                    try:
+                        ssl_context.set_ciphers('DEFAULT')
+                    except ssl.SSLError:
+                        pass
+                
+                # 允许不安全的重新协商（为了兼容性）
+                try:
+                    ssl_context.options |= ssl.OP_LEGACY_SERVER_CONNECT
+                except AttributeError:
+                    pass
+                
+                # 禁用压缩以避免CRIME攻击，但提供更好的兼容性
+                try:
+                    ssl_context.options |= ssl.OP_NO_COMPRESSION
+                except AttributeError:
+                    pass
+                    
+                self.logger.debug("已为macOS创建宽松的SSL上下文")
+            else:
+                # 其他系统使用标准但相对宽松的配置
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                self.logger.debug(f"已为{platform.system()}创建宽松的SSL上下文")
+                
+            return ssl_context
+            
+        except Exception as e:
+            self.logger.warning(f"创建SSL上下文失败，将使用默认配置: {e}")
+            # 如果创建失败，返回None，让websockets使用默认配置
+            return None
 
     async def start_account(self, shop_id: str, user_id: str, on_success: callable, on_failure: callable) -> None:
         """
@@ -110,12 +170,24 @@ class PDDChannel(Channel):
             
             self.logger.debug(f"正在连接到拼多多WebSocket: {shop_id}-{username}")
             
+            # 创建宽松的SSL上下文（特别适用于macOS）
+            ssl_context = self._create_ssl_context()
+            
+            # WebSocket连接参数
+            connect_kwargs = {
+                "ping_interval": 20,
+                "ping_timeout": 20
+            }
+            
+            # 如果SSL上下文创建成功，则使用它
+            if ssl_context is not None:
+                connect_kwargs["ssl"] = ssl_context
+                self.logger.debug("使用自定义SSL上下文连接WebSocket")
+            else:
+                self.logger.debug("使用默认SSL配置连接WebSocket")
+            
             # 建立WebSocket连接
-            async with websockets.connect(
-                full_url,
-                ping_interval=20,
-                ping_timeout=20
-            ) as websocket:
+            async with websockets.connect(full_url, **connect_kwargs) as websocket:
                 self.ws = websocket
                 self.logger.debug(f"WebSocket连接已建立: {shop_id}-{username}")
                 

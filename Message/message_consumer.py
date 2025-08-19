@@ -146,6 +146,7 @@ class UserSequentialProcessor:
         message_id = message_wrapper['id']
         context = message_wrapper['context']
         
+        # fuck
         try:
             # 查找能处理该消息的处理器
             handled = False

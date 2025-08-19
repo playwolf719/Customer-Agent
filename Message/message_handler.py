@@ -127,6 +127,7 @@ class AIAutoReplyHandler(MessageHandler):
             
             try:
                 self.logger.info(f"'{username}'收到用户'{nickname}'消息: 消息类型：{context.type},消息内容：{context.content}")
+                self.logger.info(f"fuck {shop_id} {user_id} {from_uid}")
                 reply = await self._get_ai_reply(context)
                 await self._send_reply(reply, shop_id, user_id, from_uid)
                 self.logger.info(f"'{username}'回复用户'{nickname}'消息: 消息类型：{reply.type},消息内容：{reply.content}")

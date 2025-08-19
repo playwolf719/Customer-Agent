@@ -13,6 +13,7 @@ from database import db_manager
 from playwright.async_api import async_playwright
 from Channel.pinduoduo.utils.API.get_shop_info import GetShopInfo
 from Channel.pinduoduo.utils.API.get_user_info import GetUserInfo
+from config import config
 
 class PDDLogin():
     def __init__(self,name,password):
@@ -41,6 +42,7 @@ class PDDLogin():
             context = await playwright.chromium.launch_persistent_context(
                 user_data_dir,
                 headless=False,
+                executable_path=config.get("chrome_executable_path",None),
                 args=[
                     '--disable-gpu',
                     '--no-sandbox',

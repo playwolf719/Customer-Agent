@@ -11,6 +11,7 @@ from ui.keyword_ui import KeywordManagerWidget
 from ui.auto_reply_ui import AutoReplyUI, auto_reply_manager
 from ui.log_ui import LogUI
 from ui.setting_ui import SettingUI
+from ui.test_ui import TestUI
 from utils.logger import get_logger
 
 class Widget(QFrame):
@@ -41,6 +42,7 @@ class MainWindow(FluentWindow):
         self.keyword_manager_view = KeywordManagerWidget(self)
         self.user_manager_view = UserManagerWidget(self)
         self.log_view = LogUI(self)
+        self.test_view = TestUI(self)
         self.settingInterface = SettingUI(self)
 
         # 初始化界面
@@ -55,6 +57,7 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.keyword_manager_view, FIF.EDIT, '关键词管理')
         self.addSubInterface(self.user_manager_view, FIF.PEOPLE, '账号管理')
         self.addSubInterface(self.log_view, FIF.HISTORY, '日志管理')
+        self.addSubInterface(self.test_view, FIF.PIE_SINGLE, '测试')
         # 添加二维码按钮
         self.qr_action = Action(FIF.QRCODE, '联系我们')
         self.qr_action.triggered.connect(self.showQRCode)
